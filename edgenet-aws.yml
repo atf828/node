@@ -1,9 +1,6 @@
 ---
 - hosts: all
 
-- name: set up k8s users
-  import_playbook: tests/aws.cluster/ansible/users.yml
-
 - name: install dockers and k8s on all machines
   import_playbook: tests/aws.cluster/ansible/install-k8s.yml
 

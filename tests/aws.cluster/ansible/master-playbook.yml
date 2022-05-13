@@ -1,10 +1,5 @@
 - hosts: masters
-  # remote_user: ubuntu
   become: yes
-  # become_method: sudo
-  # become_user: root
-  gather_facts: no
-  # connection: ssh
 
   tasks:
     - name: initialize the cluster
@@ -14,6 +9,8 @@
         creates: cluster_initialized.txt
 
     - name: create .kube directory
+      become: yes
+      become_user: tf
       file:
         path: $HOME/.kube
         state: directory
@@ -23,20 +20,29 @@
       become: yes
       copy:
         src: /etc/kubernetes/admin.conf
-        dest: $HOME/.kube/config
+        dest: /home/tf/.kube/config  # /home/ubuntu/.kube/config
         remote_src: yes
         owner: tf
 
     - name: install Pod network
+      become: yes
+      become_user: tf
       shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml 
       args:
         chdir: $HOME
  
     - name: Get the token for joining the worker nodes
+      become: yes
+      become_user: tf
       shell: kubeadm token create  --kubeconfig=$HOME/.kube/config --print-join-command
       register: kubernetes_join_command
       args:
         chdir: $HOME
+
+    - name: Copy join command to local file.
+      become: yes
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command" mode=0777
+
 
     # - name: create .kube directory
     #   become: yes
@@ -68,8 +74,3 @@
     #   register: kubernetes_join_command
     #   args:
     #     chdir: $HOME
-
-
-    - name: Copy join command to local file.
-      become: yes
-      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command" mode=0777

@@ -76,10 +76,7 @@
  
      - name: startup http service for worker nodes
        shell: |
-              #  cd $HOME/kubeconfig && python3 -m http.server 8082 &
-              #  cd $HOME/kubeconfig
                nohup python3 -m http.server 8082 &
                sleep 2s
        args:
         chdir: $HOME/kubeconfig 
-

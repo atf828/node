@@ -210,7 +210,7 @@ esac
 
 # # Generate ssh key pair to configure aws cluster
 # echo "Generate an ssh key pair..."
-# ssh-keygen -t rsa -b 4096 -f $HOME/.ssh/aws-edgenet-test
+# ssh-keygen -q -t rsa -N '' -f $HOME/.ssh/aws-edgenet-test <<< $'\ny' >/dev/null 2>&1
 # # Set public key in dev.tfvars
 # pubkey=$(awk NF $HOME/.ssh/aws-edgenet-test.pub)
 # # Write into the file supplied by user, or the default one
@@ -256,13 +256,31 @@ esac
 
 # echo "Sleep 30 senconds to wait aws launch ready"
 # sleep 30s
-# # Run ansible playbook to deploy docker and K8S
-# echo "Run ansible to deploy k8s and EdgeNet..."
 
-# host file for virtualbox
+# Run ansible playbook to deploy docker and K8S
+echo "Run ansible to deploy k8s and EdgeNet..."
+
+# Note: host file for virtualbox
 # [masters]
-# kub0 ansible_host=192.168.56.6 ansible_connection=ssh ansible_user=tf ansible_ssh_pass=root123  ansible_sudo_pass=root123
+# kub0 ansible_host=192.168.56.3 ansible_connection=ssh ansible_user=tf ansible_ssh_pass=root123  ansible_sudo_pass=root123
 # [workers]
-# kub1 ansible_host=3.82.242.101 ansible_connection=ssh ansible_user=tf ansible_ssh_pass=root123  ansible_sudo_pass=root123
-
+# kub1 ansible_host=192.168.56.4 ansible_connection=ssh ansible_user=tf ansible_ssh_pass=root123  ansible_sudo_pass=root123
 ansible-playbook -i "${HOST_FILE}" "${EDGENET_PLAYBOOK}"
+
+# Update vars/kubenetes.aws.yml with info from master nodes
+echo "Update kubenetes.aws.yml file..."
+if ! [ -f /tmp/aws-test/config ]; then
+  echo "Error: do not find /tmp/aws-test/config file."
+  exit 1
+fi
+
+master_ip=$(grep "server: " /tmp/aws-test/config | awk -F ':|//' '{print $4}')
+server_addr=$(echo "kubeconfig_url: http://${master_ip}:8082/config" | sed 's/\//\\\//g')
+edgenet_public_key=$(cat /tmp/aws-test/id_rsa.pub | sed 's/\//\\\//g')
+
+sed -i "s/kubeconfig_url.*/${server_addr}/1" vars/edgenet-aws.yml
+sed -i "s/edgenet_ssh_public_key.*/edgenet_ssh_public_key: ${edgenet_public_key}/1" vars/edgenet-aws.yml
+
+
+# Deploy worker node
+ansible-playbook -i "${HOST_FILE}" edgenet-aws-node.yml

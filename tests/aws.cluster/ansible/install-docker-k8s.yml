@@ -41,8 +41,6 @@
      - name: Apply new settings
        command: sudo sysctl --system
 
-
-
      - name: disable swap
        shell: |
                sudo swapoff -a

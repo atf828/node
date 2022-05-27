@@ -11,7 +11,7 @@ configuration = [
     "application_name" : "kube-worker",
     "ami" : "ami-0c4f7023847b90238",
     "instance_type" : "t2.micro",
-    "no_of_instances" : "2"
+    "no_of_instances" : "1"
   }
 
 ]
